@@ -11,6 +11,26 @@ NoteDownEvent = namedtuple("NoteDownEvent", ["note"])
 NoteUpEvent = namedtuple("NoteUpEvent", ["note"])
 DtEvent = namedtuple("DtEvent", ["dt"])
 
+# translation between numbers and events
+all_events = [DtEvent(round(float(i)*0.01, 2)) for i in range(101)]+[NoteDownEvent(i) for i in range(21,109)]+[NoteUpEvent(i) for i in range(21,109)]
+dic_numbers_to_events = {i: event for i, event in enumerate(all_events)}
+dic_events_to_numbers = {repr(dic_numbers_to_events[key]): key for key in dic_numbers_to_events}
+
+
+def events_to_number(events):
+    numbers = []
+
+    for event in events:
+        if repr(event) in dic_events_to_numbers:
+            numbers.append(dic_events_to_numbers[repr(event)])
+        else:
+            raise IndexError("Event %s not in dictionary" % event)
+    return numbers
+
+
+def numbers_to_events(numbers):
+    return [dic_numbers_to_events[num] for num in numbers]
+
 
 class MidiFileParser:
     """
@@ -36,6 +56,12 @@ class MidiFileParser:
 
         return tempi
 
+    def discretize_time(self, time):
+        if time > 1.0:
+            return 1.0
+
+        return round(time, 2)
+
     def get_tempo_at_tick(self, abs_tick):
         """
         Converts abs_tick from ticks in seconds. This is non-trivial as the conversion depends on the tempo track of the 
@@ -58,7 +84,7 @@ class MidiFileParser:
         :return: list of events 
         """
         events = []
-        track = self.midi_file.tracks[num+1]#[:10] #debugging
+        track = self.midi_file.tracks[num+1][:90] #debugging
 
         absolute_time_sec = 0
         absolute_time_tick = 0
@@ -71,17 +97,24 @@ class MidiFileParser:
                 # some midi files decode note_off as note_on with vel=0
                 if message.type == "note_on" and message.velocity > 0:
                     if dt > 0:
-                        events.append(DtEvent(dt=dt))
+                        events.append(DtEvent(dt=self.discretize_time(dt)))
                     events.append(NoteDownEvent(message.note))
 
                 if message.type == "note_up" or (message.type == "note_on" and message.velocity == 0):
                     if dt > 0:
-                        events.append(DtEvent(dt=dt))
+                        events.append(DtEvent(dt=self.discretize_time(dt)))
                     events.append(NoteUpEvent(message.note))
 
         return events
 
-    def write_tracks(self, events):
+    def read_both_tracks(self):
+        """
+        Reads both tracks from midi and concatinates them
+        :return: list of events of both tracks
+        """
+        return self.read_track(0) + self.read_track(1)
+
+    def write_tracks(events):
         """
         Creates midi file from event list
         :param events: midi events as a list of NoteUpEvent, NoteDownEvent, DtEvent
@@ -121,32 +154,57 @@ class MidiFileParser:
         print(rounding_error)
         return mid
 
+
+def parse_directory(path, verbose=False):
+    """
+    Parses all midi files in directory path and returns a list of numbers representing them
+    :param path: path to directory
+    :param verbose: turns on logging information
+    :return: list of integers 
+    """
+    events = []
+    for filename in os.listdir(path):
+
+        if verbose:
+            print(filename)
+
+        if '.mid' in filename:
+            filepath = args.directory + "/midi/" + filename
+            events.extend(MidiFileParser(filepath).read_both_tracks())
+            break
+        else:
+            if verbose:
+                print('skipped file: ', filename)
+
+    return events_to_number(events)
+
+
+def write_events(numbers, filename):
+    """
+    Creates a midifile from numbers representing the midi events
+    :param numbers: list of integers representing midi events
+    :param filename: filename of midifile 
+    :return: 
+    """
+    events = [dic_numbers_to_events[num] for num in numbers]
+    file = MidiFileParser.write_tracks(events)
+    file.save(filename)
+
+
 if __name__ == "__main__":
-    # for testing purposes. This will change soon.
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--directory', action="store", type=str)
-    #argparser.add_argument('--reverse', action='store_true')
-    #argparser.add_argument('--onehot', action='store_true')
+    argparser.add_argument('--reverse', action='store_true')
     args = argparser.parse_args()
 
     print("Starting to convert with directory %s" % (args.directory))
 
-    parser = MidiFileParser(args.directory + "/appass_1.mid")
-    mel_track1 = parser.read_track(1)
-    mel_track0 = parser.read_track(0)
-    file = parser.write_tracks(mel_track1)
-    file2 = parser.write_tracks(mel_track0)
-
-    #file.tracks.append(file2.tracks[1])
-
-    file.save("output.mid")
-
-    print("Done with conversion")
-
-
-
-
-
+    if not args.reverse:
+        total_corpus = parse_directory(args.directory + "/midi", verbose=True)
+        np.save(args.directory + "/tensors/corpus.npy", total_corpus)
+    else:
+        numbers = np.load(args.directory + "/tensors/corpus.npy")
+        write_events(numbers, "test.mid")
 
 
 
