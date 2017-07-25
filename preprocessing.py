@@ -75,7 +75,7 @@ class MidiFileParser:
                 return self.tempi[last_tick]
             last_tick = tick
         # if abs_tick is greater than last tempo, then return last
-        return self.tempi[tick]
+        return self.tempi[last_tick]
 
     def read_track(self, num):
         """
@@ -84,7 +84,7 @@ class MidiFileParser:
         :return: list of events 
         """
         events = []
-        track = self.midi_file.tracks[num+1][:90] #debugging
+        track = self.midi_file.tracks[num+1]#[:90] #debugging
 
         absolute_time_sec = 0
         absolute_time_tick = 0
@@ -171,7 +171,6 @@ def parse_directory(path, verbose=False):
         if '.mid' in filename:
             filepath = args.directory + "/midi/" + filename
             events.extend(MidiFileParser(filepath).read_both_tracks())
-            break
         else:
             if verbose:
                 print('skipped file: ', filename)
