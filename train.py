@@ -86,15 +86,15 @@ if __name__ == "__main__":
                 all_losses.append(loss)
 
                 # logging
-                if num_of_minibatch % 1:
+                if num_of_minibatch % 10:
                     np.save('training_log', all_losses)
-                    print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size, loss))
+                    print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size - 1, loss))
 
         print("Saving...")
         torch.save(decoder, 'weights.pth')
 
     except KeyboardInterrupt:
         print("Saving before quit...")
-        torch.save(decoder, 'weights.pth')
+        torch.save(model, 'weights.pth')
         np.save('training_log', all_losses)
 
