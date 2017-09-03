@@ -37,7 +37,7 @@ if __name__ == "__main__":
     n_layers = 1
     batch_size = 10
     n_epochs = 2000
-    vocabulary_size = 277
+    vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
 
     # load weights if specified
     if args.loadWeights:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     else:
         model = MidiRNN(vocabulary_size, hidden_size, vocabulary_size)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
     criterion = nn.CrossEntropyLoss()
 
     # closure for training
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     # load dataset
     dataset = MusicDataset(file=args.directory + "/corpus.npy", sequence_length=200)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1,drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True)
 
     try:
         print("training for %d epochs..." % n_epochs)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                     print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size - 1, loss))
 
         print("Saving...")
-        torch.save(decoder, 'weights.pth')
+        torch.save(model, 'weights.pth')
 
     except KeyboardInterrupt:
         print("Saving before quit...")

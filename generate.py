@@ -9,7 +9,7 @@ from model import *
 import preprocessing
 
 
-def generate(model, initialization_sequence, predict_len=1000, temperature=0.9):
+def generate(model, initialization_sequence, predict_len=2000, temperature=0.9):
     hidden = model.init_hidden(1)
     prime_input = Variable(initialization_sequence.unsqueeze(0))
 

@@ -3,16 +3,19 @@ from mido import Message, MetaMessage, MidiTrack, MidiFile
 import numpy as np
 import os
 import argparse
-import pickle
 from collections import namedtuple
 
 
 NoteDownEvent = namedtuple("NoteDownEvent", ["note"])
 NoteUpEvent = namedtuple("NoteUpEvent", ["note"])
 DtEvent = namedtuple("DtEvent", ["dt"])
+VelocityEvent = namedtuple("VelocityEvent", ["vel"])
 
 # translation between numbers and events
-all_events = [DtEvent(round(float(i)*0.01, 2)) for i in range(101)]+[NoteDownEvent(i) for i in range(21,109)]+[NoteUpEvent(i) for i in range(21,109)]
+all_events = [DtEvent(round(float(i)*0.01, 2)) for i in range(101)]+\
+             [NoteDownEvent(i) for i in range(21,109)]+\
+             [NoteUpEvent(i) for i in range(21, 109)] +\
+             [VelocityEvent(16*i+8) for i in range(0, 8)]
 dic_numbers_to_events = {i: event for i, event in enumerate(all_events)}
 dic_events_to_numbers = {repr(dic_numbers_to_events[key]): key for key in dic_numbers_to_events}
 
@@ -62,6 +65,9 @@ class MidiFileParser:
 
         return round(time, 2)
 
+    def discretize_velocity(self, velocity):
+        return (velocity//16)*16 + 8
+
     def get_tempo_at_tick(self, abs_tick):
         """
         Converts abs_tick from ticks in seconds. This is non-trivial as the conversion depends on the tempo track of the 
@@ -98,6 +104,7 @@ class MidiFileParser:
                 if message.type == "note_on" and message.velocity > 0:
                     if dt > 0:
                         events.append(DtEvent(dt=self.discretize_time(dt)))
+                    events.append(VelocityEvent(self.discretize_velocity(message.velocity)))
                     events.append(NoteDownEvent(message.note))
 
                 if message.type == "note_up" or (message.type == "note_on" and message.velocity == 0):
@@ -133,13 +140,17 @@ class MidiFileParser:
         mid.tracks.append(mel_track)
         last_dt = 0
         rounding_error = 0
+        velocity = 64
         for event in events:
             if isinstance(event, DtEvent):
-                last_dt = event.dt
+                last_dt += event.dt
+
+            if isinstance(event, VelocityEvent):
+                velocity = event.vel
 
             if isinstance(event, NoteDownEvent):
                 delta_ticks = int(mido.second2tick(last_dt, mid.ticks_per_beat, tempo))
-                mel_track.append(Message("note_on", note=event.note, time=delta_ticks, velocity=75))
+                mel_track.append(Message("note_on", note=event.note, time=delta_ticks, velocity=velocity))
                 last_dt = 0
 
                 rounding_error += abs(delta_ticks - mido.second2tick(last_dt, mid.ticks_per_beat, tempo))
