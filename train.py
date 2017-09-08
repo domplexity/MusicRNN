@@ -1,6 +1,4 @@
 import time
-import mkl
-mkl.set_num_threads(56)
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
