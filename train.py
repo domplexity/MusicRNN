@@ -33,10 +33,10 @@ if __name__ == "__main__":
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 100
-    n_layers = 1
-    batch_size = 10
-    n_epochs = 2000
+    hidden_size = 300
+    n_layers = 4
+    batch_size = 20
+    n_epochs = 500
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
 
     # load weights if specified
