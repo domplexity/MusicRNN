@@ -1,4 +1,6 @@
 import time
+import mkl
+mkl.set_num_threads(56)
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -33,8 +35,8 @@ if __name__ == "__main__":
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 300
-    n_layers = 4
+    hidden_size = 100
+    n_layers = 6
     batch_size = 20
     n_epochs = 500
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
