@@ -39,8 +39,8 @@ class MidiFileParser:
     """
     This class parses midi files. It expects files with the first track being the tempo track and the other being tracks 
     for piano. 
-    In particular, this class was written with the Yahama ePiano Competition dataset 
-    (http://www.piano-e-competition.com) in mind.
+    In particular, this class was written with the Piano Midi dataset 
+    (http://www.piano-midi.de/) in mind.
     """
     def __init__(self, filename):
         self.midi_file = MidiFile(filename)
@@ -179,7 +179,7 @@ def parse_directory(path, verbose=False):
         if verbose:
             print(filename)
 
-        if '.mid' in filename:
+        if '.mid' in filename.lower():
             filepath = args.directory + "/midi/" + filename
             events.extend(MidiFileParser(filepath).read_both_tracks())
         else:

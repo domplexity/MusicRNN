@@ -44,6 +44,8 @@ if __name__ == "__main__":
     n_epochs = 2000
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
 
+    print("Architecture: (%s layers,  %s hidden units, % vocabulary size)" % (n_layers, hidden_size, vocabulary_size))
+
     # load weights if specified
     if args.loadWeights:
         model = torch.load("weights.pth")
