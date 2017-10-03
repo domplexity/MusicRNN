@@ -11,10 +11,9 @@ from model import *
 
 
 class MusicDataset(Dataset):
-    def __init__(self, file, sequence_length=70, use_gpu=False):
+    def __init__(self, file, sequence_length=70):
         self.tensor = torch.LongTensor(np.load(file))
         self.sequence_length = sequence_length
-        self.use_gpu = use_gpu
 
     def __len__(self):
         return self.tensor.size(0) // self.sequence_length
@@ -23,11 +22,6 @@ class MusicDataset(Dataset):
         # output tensor is shifted by one note to the right with respect to input tensor
         input_tensor = self.tensor[idx * self.sequence_length:(idx + 1) * self.sequence_length]
         output_tensor = self.tensor[idx * self.sequence_length + 1:(idx + 1) * self.sequence_length + 1]
-
-        # convert to gpu if needed
-        if use_gpu:
-            input_tensor.cuda()
-            output_tensor.cuda()
 
         # the returned tensor is of form (input, target)
         return (input_tensor, output_tensor)
@@ -76,6 +70,11 @@ if __name__ == "__main__":
         # initalize gradients and loss
         model.zero_grad()
         loss = 0
+
+        # convert to gpu if needed
+        if use_gpu:
+            input.cuda()
+            target.cuda()
 
         for c in range(input.size(1)):
             output, hidden = model(input[:, c], hidden)
