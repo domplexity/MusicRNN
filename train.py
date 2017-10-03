@@ -11,23 +11,34 @@ from model import *
 
 
 class MusicDataset(Dataset):
-    def __init__(self, file, sequence_length=70):
+    def __init__(self, file, sequence_length=70, use_gpu=False):
         self.tensor = torch.LongTensor(np.load(file))
         self.sequence_length = sequence_length
+        self.use_gpu = use_gpu
 
     def __len__(self):
         return self.tensor.size(0) // self.sequence_length
 
     def __getitem__(self, idx):
+        # output tensor is shifted by one note to the right with respect to input tensor
+        input_tensor = self.tensor[idx * self.sequence_length:(idx + 1) * self.sequence_length]
+        output_tensor = self.tensor[idx * self.sequence_length + 1:(idx + 1) * self.sequence_length + 1]
+
+        # convert to gpu if needed
+        if use_gpu:
+            input_tensor.cuda()
+            output_tensor.cuda()
+
         # the returned tensor is of form (input, target)
-        return (self.tensor[idx*self.sequence_length:(idx+1)*self.sequence_length],
-                self.tensor[idx*self.sequence_length+1:(idx+1)*self.sequence_length+1])
+        return (input_tensor, output_tensor)
 
 # main
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--directory', type=str)
     argparser.add_argument('--loadWeights', action='store_true')
+    argparser.add_argument('--useGpu', action='store_true')
+    argparser.add_argument('--clipGradients', action='store_true')
     args = argparser.parse_args()
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
@@ -46,12 +57,23 @@ if __name__ == "__main__":
     else:
         model = MidiRNN(vocabulary_size, hidden_size, vocabulary_size)
 
+    # ensure that we run on gpu if specified
+    use_gpu = args.useGpu
+    if use_gpu:
+        model.cuda()
+
+    # loss and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
     criterion = nn.CrossEntropyLoss()
 
     # closure for training
     def train(input, target):
+        # initialize hidden state
         hidden = model.init_hidden(batch_size)
+        if use_gpu:
+            hidden.cuda()
+
+        # initalize gradients and loss
         model.zero_grad()
         loss = 0
 
@@ -60,6 +82,9 @@ if __name__ == "__main__":
             loss += criterion(output.view(batch_size, -1), target[:, c])
 
         loss.backward()
+
+        if args.clipGradients:
+            torch.nn.utils.clip_grad_norm(model.parameters(), 0.5)
         optimizer.step()
 
         return loss.data[0] / input.size()[0]
