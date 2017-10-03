@@ -38,8 +38,8 @@ if __name__ == "__main__":
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 100
-    n_layers = 1
+    hidden_size = 200
+    n_layers = 8
     batch_size = 10
     n_epochs = 2000
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
@@ -55,6 +55,7 @@ if __name__ == "__main__":
     use_gpu = args.useGpu
     if use_gpu:
         model.cuda()
+        print("Will run on GPU.")
 
     # loss and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
