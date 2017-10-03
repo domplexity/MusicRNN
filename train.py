@@ -64,8 +64,6 @@ if __name__ == "__main__":
     def train(input, target):
         # initialize hidden state
         hidden = model.init_hidden(batch_size)
-        if use_gpu:
-            hidden.cuda()
 
         # initalize gradients and loss
         model.zero_grad()
@@ -73,8 +71,9 @@ if __name__ == "__main__":
 
         # convert to gpu if needed
         if use_gpu:
-            input.cuda()
-            target.cuda()
+            input = input.cuda()
+            target = target.cuda()
+            hidden = hidden.cuda()
 
         for c in range(input.size(1)):
             output, hidden = model(input[:, c], hidden)
