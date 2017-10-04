@@ -33,18 +33,22 @@ if __name__ == "__main__":
     argparser.add_argument('--loadWeights', action='store_true')
     argparser.add_argument('--useGpu', action='store_true')
     argparser.add_argument('--clipGradients', action='store_true')
+    argparser.add_argument('--batch_size', type=int, default=100)
+    argparser.add_argument('--n_epochs', type=int, default=2000)
+    argparser.add_argument('--lr', type=float, default=0.0005)
+    argparser.add_argument('--seq_len', type=int, default=200)
     args = argparser.parse_args()
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 200
-    n_layers = 8
-    batch_size = 10
-    n_epochs = 2000
+    hidden_size = 20
+    n_layers = 1
+    batch_size = args.batch_size  # default 10
+    n_epochs = args.n_epochs  # default 2000
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
 
-    print("Architecture: (%s layers,  %s hidden units, % vocabulary size)" % (n_layers, hidden_size, vocabulary_size))
+    print("Architecture: (%s layers,  %s hidden units, %s vocabulary size)" % (n_layers, hidden_size, vocabulary_size))
 
     # load weights if specified
     if args.loadWeights:
@@ -60,7 +64,7 @@ if __name__ == "__main__":
         print("Will run on GPU.")
 
     # loss and optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 
     # closure for training
@@ -77,7 +81,7 @@ if __name__ == "__main__":
             input = input.cuda()
             target = target.cuda()
             hidden = hidden.cuda()
-
+        # iterate over range of length sequence_length
         for c in range(input.size(1)):
             output, hidden = model(input[:, c], hidden)
             loss += criterion(output.view(batch_size, -1), target[:, c])
@@ -88,10 +92,10 @@ if __name__ == "__main__":
             torch.nn.utils.clip_grad_norm(model.parameters(), 0.5)
         optimizer.step()
 
-        return loss.data[0] / input.size()[0]
+        return loss.data[0] / input.size(1)  # normalize loss by sequence_length
 
     # load dataset
-    dataset = MusicDataset(file=args.directory + "/corpus.npy", sequence_length=200)
+    dataset = MusicDataset(file=args.directory + "/corpus.npy", sequence_length=args.seq_len)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True)
 
     try:
