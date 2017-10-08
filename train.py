@@ -130,4 +130,6 @@ if __name__ == "__main__":
         print("Saving before quit...")
         torch.save(model, 'weights.pth')
         np.save('training_log', all_losses)
-
+        # save cpu version in case we are training on gpu
+        if use_gpu:
+            torch.save(model.cpu(), 'weights_cpu.pth')
