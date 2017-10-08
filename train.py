@@ -36,14 +36,14 @@ if __name__ == "__main__":
     argparser.add_argument('--batch_size', type=int, default=100)
     argparser.add_argument('--n_epochs', type=int, default=2000)
     argparser.add_argument('--lr', type=float, default=0.0005)
-    argparser.add_argument('--seq_len', type=int, default=200)
+    argparser.add_argument('--seq_len', type=int, default=2000)
     args = argparser.parse_args()
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 20
-    n_layers = 1
+    hidden_size = 400
+    n_layers = 4
     batch_size = args.batch_size  # default 10
     n_epochs = args.n_epochs  # default 2000
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         model = torch.load("weights.pth")
         print("loaded weights")
     else:
-        model = MidiRNN(vocabulary_size, hidden_size, vocabulary_size)
+        model = MidiRNN(vocabulary_size, hidden_size, vocabulary_size, n_layers=n_layers)
 
     # ensure that we run on gpu if specified
     use_gpu = args.useGpu
