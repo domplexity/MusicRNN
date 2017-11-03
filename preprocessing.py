@@ -86,11 +86,16 @@ class MidiFileParser:
     def read_track(self, num):
         """
         Reads track from midi_file. 
-        :param num: Track number. Note: In midi file this is actually track number-1 as track number=0 is tempo track 
+        :param num: Track number.
         :return: list of events 
         """
         events = []
-        track = self.midi_file.tracks[num+1]#[:90] #debugging
+
+        # make sure that track exists
+        if num < len(self.midi_file.tracks):
+            track = self.midi_file.tracks[num]#[:90] #debugging
+        else:
+            return events
 
         absolute_time_sec = 0
         absolute_time_tick = 0
@@ -100,7 +105,7 @@ class MidiFileParser:
                 dt = mido.tick2second(message.time, self.midi_file.ticks_per_beat, self.get_tempo_at_tick(absolute_time_tick))
                 absolute_time_sec += dt
 
-                # some midi files decode note_off as note_on with vel=0
+                # some midi files decode note_up as note_on with vel=0
                 if message.type == "note_on" and message.velocity > 0:
                     if dt > 0:
                         events.append(DtEvent(dt=self.discretize_time(dt)))
@@ -114,12 +119,12 @@ class MidiFileParser:
 
         return events
 
-    def read_both_tracks(self):
+    def read_all_tracks(self):
         """
-        Reads both tracks from midi and concatinates them
-        :return: list of events of both tracks
+        Reads all tracks from midi and concatinates them
+        :return: list of events of all tracks
         """
-        return self.read_track(0) + self.read_track(1)
+        return self.read_track(0) + self.read_track(1) + self.read_track(2)
 
     def write_tracks(events):
         """
@@ -181,7 +186,7 @@ def parse_directory(path, verbose=False):
 
         if '.mid' in filename.lower():
             filepath = args.directory + "/midi/" + filename
-            events.extend(MidiFileParser(filepath).read_both_tracks())
+            events.extend(MidiFileParser(filepath).read_all_tracks())
         else:
             if verbose:
                 print('skipped file: ', filename)

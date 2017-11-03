@@ -9,7 +9,7 @@ from model import *
 import preprocessing
 
 
-def generate(model, initialization_sequence, predict_len=2000, temperature=0.9):
+def generate(model, initialization_sequence, predict_len=4000, temperature=0.9):
     hidden = model.init_hidden(1)
     prime_input = Variable(initialization_sequence.unsqueeze(0))
 
@@ -43,7 +43,10 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     model = torch.load(args.filename)
-    initialization_sequence = torch.LongTensor(np.load("beeth/tensors/corpus.npy")[:100])
+    corpus = np.load("beeth/tensors/corpus.npy")
+    random_start_time = np.random.randint(0,len(corpus-100))
+
+    initialization_sequence = torch.LongTensor(corpus[random_start_time:random_start_time+100])
 
     midi_numbers = generate(model, initialization_sequence)
     preprocessing.write_events(midi_numbers, "output.mid")
