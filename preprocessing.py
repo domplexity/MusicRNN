@@ -99,22 +99,25 @@ class MidiFileParser:
 
         absolute_time_sec = 0
         absolute_time_tick = 0
+        dt = 0
         for message in track:
-            if not message.is_meta:
-                absolute_time_tick += message.time
-                dt = mido.tick2second(message.time, self.midi_file.ticks_per_beat, self.get_tempo_at_tick(absolute_time_tick))
-                absolute_time_sec += dt
+            absolute_time_tick += message.time
+            dt += mido.tick2second(message.time, self.midi_file.ticks_per_beat, self.get_tempo_at_tick(absolute_time_tick))
+            absolute_time_sec += dt
 
+            if not message.is_meta:
                 # some midi files decode note_up as note_on with vel=0
                 if message.type == "note_on" and message.velocity > 0:
                     if dt > 0:
                         events.append(DtEvent(dt=self.discretize_time(dt)))
+                        dt = 0
                     events.append(VelocityEvent(self.discretize_velocity(message.velocity)))
                     events.append(NoteDownEvent(message.note))
 
                 if message.type == "note_up" or (message.type == "note_on" and message.velocity == 0):
                     if dt > 0:
                         events.append(DtEvent(dt=self.discretize_time(dt)))
+                        dt = 0
                     events.append(NoteUpEvent(message.note))
 
         return events
@@ -132,7 +135,7 @@ class MidiFileParser:
         :param events: midi events as a list of NoteUpEvent, NoteDownEvent, DtEvent
         :return: MidiFile with the track 
         """
-        mid = MidiFile(ticks_per_beat=480)
+        mid = MidiFile(ticks_per_beat=384) #480
 
         # tempo track controls conversion of ticks in sec
         tempo_track = MidiTrack()
