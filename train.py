@@ -152,7 +152,7 @@ if __name__ == "__main__":
                 all_losses.append(loss)
 
                 # logging
-                if num_of_minibatch % 2 == 0:
+                if num_of_minibatch % 10 == 0:
                     np.save('training_log', all_losses)
                     print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size - 1, loss))
 
