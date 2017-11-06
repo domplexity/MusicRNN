@@ -46,7 +46,7 @@ if __name__ == "__main__":
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 2000
+    hidden_size = 200
     n_layers = 4
     batch_size = args.batch_size
     seq_len = args.seq_len
@@ -122,7 +122,7 @@ if __name__ == "__main__":
                 total_loss += criterion(output.view(batch_size, -1), target[:, c])
 
         # normalize loss
-        total_loss = total_loss.data[0] / seq_len
+        total_loss = total_loss.data[0] / len(test_set)
 
         return total_loss, math.exp(total_loss)
 
