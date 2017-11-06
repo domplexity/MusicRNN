@@ -1,12 +1,8 @@
-import time
-import torch
-import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-from torch.autograd import Variable
 import argparse
 from tqdm import tqdm
-
+import math
 from model import *
 
 
@@ -19,12 +15,19 @@ class MusicDataset(Dataset):
         return self.tensor.size(0) // self.sequence_length
 
     def __getitem__(self, idx):
-        # output tensor is shifted by one note to the right with respect to input tensor
+        # target is shifted by one note to the right with respect to input
         input_tensor = self.tensor[idx * self.sequence_length:(idx + 1) * self.sequence_length]
-        output_tensor = self.tensor[idx * self.sequence_length + 1:(idx + 1) * self.sequence_length + 1]
+        target_tensor = self.tensor[idx * self.sequence_length + 1:(idx + 1) * self.sequence_length + 1]
 
         # the returned tensor is of form (input, target)
-        return (input_tensor, output_tensor)
+        return (input_tensor, target_tensor)
+
+
+def save_model(model, use_gpu):
+    torch.save(model, 'weights.pth')
+    # save also cpu version of model in case we are training on gpu
+    if use_gpu:
+        torch.save(model.cpu(), 'weights_cpu.pth')
 
 # main
 if __name__ == "__main__":
@@ -36,16 +39,18 @@ if __name__ == "__main__":
     argparser.add_argument('--batch_size', type=int, default=100)
     argparser.add_argument('--n_epochs', type=int, default=2000)
     argparser.add_argument('--lr', type=float, default=0.0005)
-    argparser.add_argument('--seq_len', type=int, default=2000)
+    argparser.add_argument('--seq_len', type=int, default=200)
+    argparser.add_argument('--eval_every_n_epoch', type=int, default=1)
     args = argparser.parse_args()
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 400
+    hidden_size = 2000
     n_layers = 4
-    batch_size = args.batch_size  # default 10
-    n_epochs = args.n_epochs  # default 2000
+    batch_size = args.batch_size
+    seq_len = args.seq_len
+    n_epochs = args.n_epochs
     vocabulary_size = 285  # 88 note-on and note-off events, 101 DtEvents, 8 VelocityEvents
 
     print("Architecture: (%s layers,  %s hidden units, %s vocabulary size)" % (n_layers, hidden_size, vocabulary_size))
@@ -81,7 +86,7 @@ if __name__ == "__main__":
             input = input.cuda()
             target = target.cuda()
             hidden = hidden.cuda()
-        # iterate over range of length sequence_length
+        # iterate over range with length of sequence_length
         for c in range(input.size(1)):
             output, hidden = model(input[:, c], hidden)
             loss += criterion(output.view(batch_size, -1), target[:, c])
@@ -94,19 +99,50 @@ if __name__ == "__main__":
 
         return loss.data[0] / input.size(1)  # normalize loss by sequence_length
 
-    # load dataset
-    dataset = MusicDataset(file=args.directory + "/corpus.npy", sequence_length=args.seq_len)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True)
+
+    # closure for evaluation
+    def evaluate():
+        # initialize hidden state
+        hidden = model.init_hidden(batch_size)
+
+        total_loss = 0
+
+        for input, target in test_data_loader:
+            input = Variable(input)
+            target = Variable(target)
+
+            # convert to gpu if needed
+            if use_gpu:
+                input = input.cuda()
+                target = target.cuda()
+                hidden = hidden.cuda()
+
+            for c in range(input.size(1)):
+                output, hidden = model(input[:, c], hidden)
+                total_loss += criterion(output.view(batch_size, -1), target[:, c])
+
+        # normalize loss
+        total_loss = total_loss.data[0] / seq_len
+
+        return total_loss, math.exp(total_loss)
+
+
+    # load datasets
+    training_set = MusicDataset(file=args.directory + "/corpus.npy", sequence_length=seq_len)
+    train_data_loader = DataLoader(training_set, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True)
+    test_set = MusicDataset(file=args.directory + "/corpus_test.npy", sequence_length=seq_len)
+    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, drop_last=True)
 
     try:
         print("training for %d epochs..." % n_epochs)
 
-        total_minibatches = len(dataset)
+        total_minibatches = len(training_set)
         loss_total = 0
         all_losses = []
+        all_perplexities = []
 
         for epoch in tqdm(range(1, n_epochs + 1)):
-            for num_of_minibatch, (input, target) in enumerate(dataloader):
+            for num_of_minibatch, (input, target) in enumerate(train_data_loader):
                 input_data = Variable(input)
                 target_data = Variable(target)
 
@@ -116,20 +152,23 @@ if __name__ == "__main__":
                 all_losses.append(loss)
 
                 # logging
-                if num_of_minibatch % 10:
+                if num_of_minibatch % 2 == 0:
                     np.save('training_log', all_losses)
                     print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size - 1, loss))
 
+
+            # evaluate test set
+            if epoch % args.eval_every_n_epoch == 0:
+                loss_test, perplexity_test = evaluate()
+                all_perplexities.append(perplexity_test)
+                np.save('test_log', all_perplexities)
+                print("Evaluating test set: loss %.4f and perplexity %.4f" % (loss_test, perplexity_test))
+
         print("Saving...")
-        torch.save(model, 'weights.pth')
-        # save cpu version in case we are training on gpu
-        if use_gpu:
-            torch.save(model.cpu(), 'weights_cpu.pth')
+        save_model(model, use_gpu)
 
     except KeyboardInterrupt:
         print("Saving before quit...")
-        torch.save(model, 'weights.pth')
+        save_model(model, use_gpu)
         np.save('training_log', all_losses)
-        # save cpu version in case we are training on gpu
-        if use_gpu:
-            torch.save(model.cpu(), 'weights_cpu.pth')
+        np.save('test_log', all_perplexities)

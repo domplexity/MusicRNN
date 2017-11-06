@@ -219,7 +219,15 @@ if __name__ == "__main__":
 
     if not args.reverse:
         total_corpus = parse_directory(args.directory + "/midi", verbose=True)
-        np.save(args.directory + "/tensors/corpus.npy", total_corpus)
+
+        # split in train and test set
+        total_length = len(total_corpus)
+        train_set = total_corpus[:-total_length // 10]
+        test_set = total_corpus[-total_length // 10:]
+
+        # save test and train sets
+        np.save(args.directory + "/tensors/corpus.npy", train_set)
+        np.save(args.directory + "/tensors/corpus_test.npy", test_set)
     else:
         numbers = np.load(args.directory + "/tensors/corpus.npy")
         write_events(numbers, "test.mid")
