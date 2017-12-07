@@ -6,6 +6,10 @@ seq_lens = [100, 1000, 4000]
 layers = [1, 4, 8]
 hidden_sizes = [100, 200, 400]
 
+seq_lens = [100]
+layers = [1]
+hidden_sizes = [100]
+
 #for all combinations:
 
 for seq_len in seq_lens:
@@ -20,7 +24,7 @@ for seq_len in seq_lens:
 
             log = open(dir_name+'log.txt', 'a')
             print("Starting with hyperparams seq_len: {} layer: {} hidden_size: {}".format(seq_len, layer, hidden_size))
-            c = subprocess.Popen([
+            c = subprocess.run([
                 'python',
                 'train.py',
                 '--directory',
