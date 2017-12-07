@@ -1,3 +1,4 @@
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import argparse
@@ -70,6 +71,7 @@ if __name__ == "__main__":
 
     # loss and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = ReduceLROnPlateau(optimizer, threshold=0.01, verbose=True)
     criterion = nn.CrossEntropyLoss()
 
     # closure for training
@@ -166,6 +168,9 @@ if __name__ == "__main__":
                 all_perplexities.append(perplexity_test)
                 np.save('test_log', all_perplexities)
                 print("Evaluating test set: loss train %.4f loss test %.4f and perplexity %.4f" % (loss_total, loss_test, perplexity_test))
+
+                scheduler.step(loss_test)
+
 
         print("Saving...")
         save_model(model, use_gpu)
