@@ -37,7 +37,9 @@ if __name__ == "__main__":
     argparser.add_argument('--n_epochs', type=int, default=2000)
     argparser.add_argument('--lr', type=float, default=0.0005)
     argparser.add_argument('--seq_len', type=int, default=200)
-    argparser.add_argument('--eval_every_n_epoch', type=int, default=1)
+    argparser.add_argument('--seq_len', type=int, default=200)
+    argparser.add_argument('--layers', type=int, default=2)
+    argparser.add_argument('--hidden_size', type=int, default=200)
     args = argparser.parse_args()
 
     # create output directory if non-existent
@@ -47,8 +49,8 @@ if __name__ == "__main__":
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 200
-    n_layers = 4
+    hidden_size = args.hidden_size
+    n_layers = args.layers
     batch_size = args.batch_size
     seq_len = args.seq_len
     n_epochs = args.n_epochs
