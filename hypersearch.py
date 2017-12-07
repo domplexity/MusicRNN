@@ -24,7 +24,7 @@ for seq_len in seq_lens:
 
             log = open(dir_name+'log.txt', 'a')
             print("Starting with hyperparams seq_len: {} layer: {} hidden_size: {}".format(seq_len, layer, hidden_size))
-            c = subprocess.run([
+            c = subprocess.call([
                 'python',
                 'train.py',
                 '--directory',
