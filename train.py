@@ -37,7 +37,6 @@ if __name__ == "__main__":
     argparser.add_argument('--n_epochs', type=int, default=2000)
     argparser.add_argument('--lr', type=float, default=0.0005)
     argparser.add_argument('--seq_len', type=int, default=200)
-    argparser.add_argument('--seq_len', type=int, default=200)
     argparser.add_argument('--layers', type=int, default=2)
     argparser.add_argument('--hidden_size', type=int, default=200)
     args = argparser.parse_args()
