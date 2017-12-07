@@ -1,3 +1,4 @@
+import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
@@ -28,7 +29,7 @@ class MusicDataset(Dataset):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--directory', type=str)
-    argparser.add_argument('--outputDirectory', type=str, default="output")
+    argparser.add_argument('--outputDirectory', type=str, default="output/")
     argparser.add_argument('--loadWeights', action='store_true')
     argparser.add_argument('--useGpu', action='store_true')
     argparser.add_argument('--clipGradients', action='store_true')
@@ -38,6 +39,10 @@ if __name__ == "__main__":
     argparser.add_argument('--seq_len', type=int, default=200)
     argparser.add_argument('--eval_every_n_epoch', type=int, default=1)
     args = argparser.parse_args()
+
+    # create output directory if non-existent
+    if not os.path.exists(args.outputDirectory):
+        os.makedirs(args.outputDirectory)
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
@@ -161,6 +166,9 @@ if __name__ == "__main__":
                 print("Evaluating test set: loss train %.4f loss test %.4f and perplexity %.4f" % (loss_total, loss_test, perplexity_test))
 
                 scheduler.step(loss_test)
+
+    except KeyboardInterrupt:
+        print("Training was stopped by user")
 
     finally:
         print("Saving...")
