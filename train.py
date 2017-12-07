@@ -119,10 +119,11 @@ if __name__ == "__main__":
 
             for c in range(input.size(1)):
                 output, hidden = model(input[:, c], hidden)
-                total_loss += criterion(output.view(batch_size, -1), target[:, c])
+                total_loss += criterion(output.view(batch_size, -1), target[:, c]) #loss is averaged wrt batch and sequence
+
 
         # normalize loss
-        total_loss = total_loss.data[0] / len(test_set)
+        total_loss = total_loss.data[0] / (seq_len * ( len(test_set) // batch_size) )
 
         return total_loss, math.exp(total_loss)
 
@@ -136,25 +137,27 @@ if __name__ == "__main__":
     try:
         print("training for %d epochs..." % n_epochs)
 
-        total_minibatches = len(training_set)
-        loss_total = 0
+        total_minibatches = len(training_set) // batch_size
         all_losses = []
         all_perplexities = []
 
         for epoch in tqdm(range(1, n_epochs + 1)):
+            # reset total loss for epoch
+            loss_total = 0
+
             for num_of_minibatch, (input, target) in enumerate(train_data_loader):
                 input_data = Variable(input)
                 target_data = Variable(target)
 
                 # calculate loss
                 loss = train(input_data, target_data)
-                loss_total += loss
+                loss_total += loss / total_minibatches
                 all_losses.append(loss)
 
                 # logging
                 if num_of_minibatch % 10 == 0:
                     np.save('training_log', all_losses)
-                    print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches // batch_size - 1, loss))
+                    print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches-1, loss))
 
 
             # evaluate test set
@@ -162,7 +165,7 @@ if __name__ == "__main__":
                 loss_test, perplexity_test = evaluate()
                 all_perplexities.append(perplexity_test)
                 np.save('test_log', all_perplexities)
-                print("Evaluating test set: loss %.4f and perplexity %.4f" % (loss_test, perplexity_test))
+                print("Evaluating test set: loss train %.4f loss test %.4f and perplexity %.4f" % (loss_total, loss_test, perplexity_test))
 
         print("Saving...")
         save_model(model, use_gpu)
