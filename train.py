@@ -24,16 +24,11 @@ class MusicDataset(Dataset):
         return (input_tensor, target_tensor)
 
 
-def save_model(model, use_gpu):
-    torch.save(model, 'weights.pth')
-    # save also cpu version of model in case we are training on gpu
-    if use_gpu:
-        torch.save(model.cpu(), 'weights_cpu.pth')
-
 # main
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--directory', type=str)
+    argparser.add_argument('--outputDirectory', type=str, default="output")
     argparser.add_argument('--loadWeights', action='store_true')
     argparser.add_argument('--useGpu', action='store_true')
     argparser.add_argument('--clipGradients', action='store_true')
@@ -140,8 +135,7 @@ if __name__ == "__main__":
         print("training for %d epochs..." % n_epochs)
 
         total_minibatches = len(training_set) // batch_size
-        all_losses = []
-        all_perplexities = []
+        logging_data = []
 
         for epoch in tqdm(range(1, n_epochs + 1)):
             # reset total loss for epoch
@@ -154,29 +148,26 @@ if __name__ == "__main__":
                 # calculate loss
                 loss = train(input_data, target_data)
                 loss_total += loss / total_minibatches
-                all_losses.append(loss)
 
                 # logging
                 if num_of_minibatch % 10 == 0:
-                    np.save('training_log', all_losses)
                     print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches-1, loss))
-
 
             # evaluate test set
             if epoch % args.eval_every_n_epoch == 0:
                 loss_test, perplexity_test = evaluate()
-                all_perplexities.append(perplexity_test)
-                np.save('test_log', all_perplexities)
+                logging_data.append([loss_total, loss_test, perplexity_test, optimizer.param_groups[0]['lr']])
+
                 print("Evaluating test set: loss train %.4f loss test %.4f and perplexity %.4f" % (loss_total, loss_test, perplexity_test))
 
                 scheduler.step(loss_test)
 
-
+    finally:
         print("Saving...")
-        save_model(model, use_gpu)
 
-    except KeyboardInterrupt:
-        print("Saving before quit...")
-        save_model(model, use_gpu)
-        np.save('training_log', all_losses)
-        np.save('test_log', all_perplexities)
+        torch.save(model, args.outputDirectory+'weights.pth')
+        # save also cpu version of model in case we are training on gpu
+        if use_gpu:
+            torch.save(model.cpu(), args.outputDirectory+'weights_cpu.pth')
+
+        np.save(args.outputDirectory+'training_log', logging_data)
