@@ -1,6 +1,8 @@
 import subprocess
-
 import os
+
+from train import main
+
 
 seq_lens = [100, 1000, 4000]
 layers = [1, 4, 8]
@@ -24,17 +26,5 @@ for seq_len in seq_lens:
 
             log = open(dir_name+'log.txt', 'a')
             print("Starting with hyperparams seq_len: {} layer: {} hidden_size: {}".format(seq_len, layer, hidden_size))
-            c = subprocess.call([
-                'python',
-                'train.py',
-                '--directory',
-                'yamaha/tensors',
-                '--n_epochs',
-                '1000',
-                '--seq_len',
-                str(seq_len),
-                '--layers',
-                str(layer),
-                '--hidden_size',
-                str(hidden_size)
-            ], stdout=log, stderr=log, shell=True)
+
+            main(directory='yamaha/tensors',n_epochs=1000,seq_len=seq_len,layers=layer,hidden_size=hidden_size)
