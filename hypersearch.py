@@ -23,4 +23,4 @@ for seq_len in seq_lens:
             log = open(dir_name+'log.txt', 'a')
             print("Starting with hyperparams seq_len: {} layer: {} hidden_size: {}".format(seq_len, layer, hidden_size))
 
-            main(directory='yamaha/tensors',n_epochs=1000,seq_len=seq_len,layers=layer,hidden_size=hidden_size)
+            main(directory='yamaha/tensors',n_epochs=1000,seq_len=seq_len,layers=layer,hidden_size=hidden_size, use_gpu=True)

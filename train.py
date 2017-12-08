@@ -30,7 +30,7 @@ def main(
         outputDirectory="output/",
         loadWeights=False,
         use_gpu=False,
-        clipGradients=False,
+        clipGradients=True,
         batch_size=100,
         n_epochs=2000,
         lr=0.0005,
