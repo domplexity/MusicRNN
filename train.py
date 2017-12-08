@@ -23,7 +23,7 @@ class MusicDataset(Dataset):
         return (input_tensor, target_tensor)
 
 
-def save_model(model, use_gpu):
+def save_model(model, use_gpu, target_dir):
     torch.save(model, 'weights.pth')
     # save also cpu version of model in case we are training on gpu
     if use_gpu:
