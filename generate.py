@@ -43,7 +43,7 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     model = torch.load(args.filename)
-    corpus = np.load("beeth/tensors/corpus.npy")
+    corpus = np.load("yamaha/tensors/corpus.npy")
     random_start_time = np.random.randint(0,len(corpus-100))
 
     initialization_sequence = torch.LongTensor(corpus[random_start_time:random_start_time+100])
