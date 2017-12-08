@@ -1,3 +1,5 @@
+import os
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import argparse
@@ -23,16 +25,11 @@ class MusicDataset(Dataset):
         return (input_tensor, target_tensor)
 
 
-def save_model(model, use_gpu, target_dir):
-    torch.save(model, 'weights.pth')
-    # save also cpu version of model in case we are training on gpu
-    if use_gpu:
-        torch.save(model.cpu(), 'weights_cpu.pth')
-
 # main
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--directory', type=str)
+    argparser.add_argument('--outputDirectory', type=str, default="output/")
     argparser.add_argument('--loadWeights', action='store_true')
     argparser.add_argument('--useGpu', action='store_true')
     argparser.add_argument('--clipGradients', action='store_true')
@@ -40,14 +37,19 @@ if __name__ == "__main__":
     argparser.add_argument('--n_epochs', type=int, default=2000)
     argparser.add_argument('--lr', type=float, default=0.0005)
     argparser.add_argument('--seq_len', type=int, default=200)
-    argparser.add_argument('--eval_every_n_epoch', type=int, default=1)
+    argparser.add_argument('--layers', type=int, default=2)
+    argparser.add_argument('--hidden_size', type=int, default=200)
     args = argparser.parse_args()
+
+    # create output directory if non-existent
+    if not os.path.exists(args.outputDirectory):
+        os.makedirs(args.outputDirectory)
 
     print("About to start training with directory %s, loadWeights %s" % (args.directory, args.loadWeights))
 
     # hyperparameters
-    hidden_size = 200
-    n_layers = 4
+    hidden_size = args.hidden_size
+    n_layers = args.layers
     batch_size = args.batch_size
     seq_len = args.seq_len
     n_epochs = args.n_epochs
@@ -70,6 +72,7 @@ if __name__ == "__main__":
 
     # loss and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = ReduceLROnPlateau(optimizer, threshold=0.01, verbose=True)
     criterion = nn.CrossEntropyLoss()
 
     # closure for training
@@ -138,8 +141,7 @@ if __name__ == "__main__":
         print("training for %d epochs..." % n_epochs)
 
         total_minibatches = len(training_set) // batch_size
-        all_losses = []
-        all_perplexities = []
+        logging_data = []
 
         for epoch in tqdm(range(1, n_epochs + 1)):
             # reset total loss for epoch
@@ -152,26 +154,29 @@ if __name__ == "__main__":
                 # calculate loss
                 loss = train(input_data, target_data)
                 loss_total += loss / total_minibatches
-                all_losses.append(loss)
 
                 # logging
                 if num_of_minibatch % 10 == 0:
-                    np.save('training_log', all_losses)
                     print("minibatch %d of %d has loss %.4f" % (num_of_minibatch, total_minibatches-1, loss))
-
 
             # evaluate test set
             if epoch % args.eval_every_n_epoch == 0:
                 loss_test, perplexity_test = evaluate()
-                all_perplexities.append(perplexity_test)
-                np.save('test_log', all_perplexities)
+                logging_data.append([loss_total, loss_test, perplexity_test, optimizer.param_groups[0]['lr']])
+
                 print("Evaluating test set: loss train %.4f loss test %.4f and perplexity %.4f" % (loss_total, loss_test, perplexity_test))
 
-        print("Saving...")
-        save_model(model, use_gpu)
+                scheduler.step(loss_test)
 
     except KeyboardInterrupt:
-        print("Saving before quit...")
-        save_model(model, use_gpu)
-        np.save('training_log', all_losses)
-        np.save('test_log', all_perplexities)
+        print("Training was stopped by user")
+
+    finally:
+        print("Saving...")
+
+        torch.save(model, args.outputDirectory+'weights.pth')
+        # save also cpu version of model in case we are training on gpu
+        if use_gpu:
+            torch.save(model.cpu(), args.outputDirectory+'weights_cpu.pth')
+
+        np.save(args.outputDirectory+'training_log', logging_data)
