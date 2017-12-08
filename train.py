@@ -117,7 +117,7 @@ def main(
                                         target[:, c])  # loss is averaged wrt batch and sequence
 
         # normalize loss
-        total_loss = total_loss / (seq_len * (len(test_set) // batch_size))
+        total_loss = total_loss.data[0] / (seq_len * (len(test_set) // batch_size))
 
         return total_loss, math.exp(total_loss)
 
