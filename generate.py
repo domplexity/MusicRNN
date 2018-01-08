@@ -38,6 +38,7 @@ def generate(model, initialization_sequence, predict_len=4000, temperature=0.9):
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     argparser.add_argument('filename', type=str)
+    argparser.add_argument('outputfile', type=str)
     argparser.add_argument('-l', '--predict_len', type=int, default=100)
     argparser.add_argument('-t', '--temperature', type=float, default=0.8)
     args = argparser.parse_args()
@@ -49,4 +50,4 @@ if __name__ == '__main__':
     initialization_sequence = torch.LongTensor(corpus[random_start_time:random_start_time+100])
 
     midi_numbers = generate(model, initialization_sequence)
-    preprocessing.write_events(midi_numbers, "output.mid")
+    preprocessing.write_events(midi_numbers, args.outputfile)
