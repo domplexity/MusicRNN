@@ -4,9 +4,9 @@ import os
 from train import main
 
 
-seq_lens = [100, 1000, 4000]
-layers = [1, 4, 8]
-hidden_sizes = [100, 200, 400]
+seq_lens = [100, 1000]
+layers = [1, 2]
+hidden_sizes = [100, 200]
 
 #for all combinations:
 
@@ -20,7 +20,7 @@ for seq_len in seq_lens:
                 os.makedirs(dir_name)
 
 
-            log = open(dir_name+'log.txt', 'a')
+            #log = open(dir_name+'log.txt', 'a')
             print("Starting with hyperparams seq_len: {} layer: {} hidden_size: {}".format(seq_len, layer, hidden_size))
 
-            main(directory='yamaha/tensors',n_epochs=1000,seq_len=seq_len,layers=layer,hidden_size=hidden_size, use_gpu=True)
+            main(directory='yamaha/tensors', outputDirectory=dir_name, n_epochs=80,seq_len=seq_len,layers=layer,hidden_size=hidden_size, use_gpu=True)
